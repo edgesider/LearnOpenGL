@@ -17,13 +17,14 @@ Shader::Shader(const GLchar *vertexPath, const GLchar *fragmentPath) {
     glAttachShader(id, vertex);
     glAttachShader(id, fragment);
     glLinkProgram(id);
+    glDeleteShader(vertex);
+    glDeleteShader(fragment);
+
     glGetProgramiv(id, GL_LINK_STATUS, &success);
     if (!success) {
         glGetProgramInfoLog(id, sizeof(info), nullptr, info);
         throw runtime_error(string("shaders link failed: ") + info);
     }
-    glDeleteShader(vertex);
-    glDeleteShader(fragment);
 }
 
 void Shader::use() const {

@@ -8,7 +8,7 @@ uint Cube::VBO = -1;
 uint Cube::EBO = -1;
 
 const float Cube::vertices[] = {
-//      ---- 位置 ----     - 纹理坐标 -
+        // [位置x3][纹理坐标x2][法向量x3]
         // 前
         0.5f, 0.5f, 0.5f, 2.0f, 2.0f, 0, 0, 1,
         0.5f, -0.5f, 0.5f, 2.0f, 0.0f, 0, 0, 1,
@@ -63,21 +63,26 @@ const uint Cube::indices[] = {
 void Cube::init() {
     if (VAO_ != -1)
         throw std::runtime_error("Cube has been initialized");
+    // 顶点对象VAO，用于存储顶点的元信息，即存储顶点数组中各元素的意义
     glGenVertexArrays(1, &VAO_);
-    glGenBuffers(1, &VBO);
-    glGenBuffers(1, &EBO);
     glBindVertexArray(VAO_);
 
+    // 索引数组EBO，用于指定顶点顺序时复用顶点
+    glGenBuffers(1, &EBO);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
 
+    // 顶点数组VBO，实际的顶点数据
+    glGenBuffers(1, &VBO);
     glBindBuffer(GL_ARRAY_BUFFER, VBO);
     glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+
+    // 指定顶点属性，会存储到VAO中
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), nullptr);
-    glEnableVertexAttribArray(0);
     glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void *) (3 * sizeof(float)));
-    glEnableVertexAttribArray(1);
     glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void *) (5 * sizeof(float)));
+    glEnableVertexAttribArray(0);
+    glEnableVertexAttribArray(1);
     glEnableVertexAttribArray(2);
 }
 

@@ -15,6 +15,7 @@
 #include "Camera.h"
 #include "Scene.h"
 
+#define GL_SILENCE_DEPRECATION
 //#define SHOW_FPS
 #define PERSPECTIVE_CAMERA
 
@@ -49,6 +50,11 @@ float lastX = -1, lastY = -1;
 float yaw = 0, pitch = 0;
 
 void onMouseMove(GLFWwindow *win, double x, double y) {
+    // 按下左键的时候才可以移动视角
+    if (glfwGetMouseButton(win, GLFW_MOUSE_BUTTON_LEFT) != GLFW_PRESS) {
+        lastX = lastY = -1;
+        return;
+    }
     std::cout << "move: " << x << ", " << y << std::endl;
     printMousePos(win);
     if (!glfwGetWindowAttrib(win, GLFW_FOCUSED))
@@ -68,17 +74,21 @@ void onMouseMove(GLFWwindow *win, double x, double y) {
     lastY = (float) y;
 }
 
-void onMouseWheel() {
-
+void onKey(GLFWwindow *win, int key, int scancode, int action, int mods) {
+    std::cout << "key press " << key << ' ' << scancode << ' ' << action << ' ' << mods << std::endl;
+    if (key == GLFW_KEY_X && action == GLFW_RELEASE) {
+        if (glfwGetInputMode(win, GLFW_CURSOR) == GLFW_CURSOR_DISABLED) {
+            glfwSetInputMode(win, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+        } else {
+            glfwSetInputMode(win, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+        }
+    }
 }
 
 void onFocusChange(GLFWwindow *win, int focus) {
     if (focus == GLFW_TRUE) {
-        printMousePos(win);
+        //        printMousePos(win);
         lastX = lastY = -1;
-//        if (glfwGetMouseButton(win, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS) {
-//            glfwSetInputMode(win, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
-//        }
     } else {
     }
 }
@@ -92,7 +102,7 @@ void render(GLFWwindow *window) {
     scene.lightColor = glm::vec3(1, 1, 1);
 
 #ifdef PERSPECTIVE_CAMERA
-    Camera camera = Camera::perspective(glm::radians(45.0f), 800.0f / 800, 0.1f, 100.0f);
+    Camera camera = Camera::perspective(glm::radians(90.0f), 800.0f / 800, 0.1f, 100.0f);
 #else
     Camera camera = Camera::orthogonal(-1, 1, -1, 1, 0.1f, 100.0f);
 #endif
@@ -108,10 +118,10 @@ void render(GLFWwindow *window) {
         float x = radius * (float) std::sin(2 * M_PI / 10 * i),
                 z = 4 + radius * (float) std::cos(2 * M_PI / 10 * i);
         cube->position = glm::vec3(x, 0, z);
-        cube->rotation.y = 2 * M_PI / 10 * i;
+        cube->rotation.y = (float) (2.0 * M_PI / 10 * i);
         cube->updateMatrix();
-//        cube.matrix = glm::rotate(cube.matrix, (float) glm::acos(1 / sqrt(3)), glm::vec3(-1.0f, 0.0f, 1.0f));
-//        cube.updateFromMatrix();
+        //        cube.matrix = glm::rotate(cube.matrix, (float) glm::acos(1 / sqrt(3)), glm::vec3(-1.0f, 0.0f, 1.0f));
+        //        cube.updateFromMatrix();
         cube->materialColor = glm::vec4(.6, .2, .4, 0);
         cube->shininess = 64;
         cube->ambientStrength = .7;
@@ -152,10 +162,10 @@ void render(GLFWwindow *window) {
         cubeRotateSpeed = (float) std::cos(curr) * 2;
         if (!paused) {
             runningTime += duration;
-//            cube.matrix = glm::rotate(cube.matrix, (float) duration * cubeRotateSpeed, glm::vec3(1, 1, 1));
-//            cube.updateFromMatrix();
+            //            cube.matrix = glm::rotate(cube.matrix, (float) duration * cubeRotateSpeed, glm::vec3(1, 1, 1));
+            //            cube.updateFromMatrix();
 
-            for (auto cube : cubes) {
+            for (auto cube: cubes) {
                 cube->position = glm::vec3(4, 0, 0);
                 cube->rotation.y += cubeRotateSpeed * duration;
                 cube->rotation.z += cubeRotateSpeed * duration;
@@ -181,32 +191,37 @@ GLFWwindow *init() {
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+    glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GLFW_TRUE);
     glfwWindowHint(GLFW_SAMPLES, 4);
 
     GLFWwindow *window = glfwCreateWindow(800, 800, "LearnOpenGL", nullptr, nullptr);
     if (window == nullptr) {
-        std::cout << "Failed to create window" << std::endl;
+        const char *desc;
+        glfwGetError(&desc);
+        std::cout << "failed to create window: " << desc << std::endl;
         glfwTerminate();
         return nullptr;
     }
     glfwMakeContextCurrent(window);
 
     if (!gladLoadGLLoader((GLADloadproc) glfwGetProcAddress)) {
-        std::cout << "Failed to initialize GLAD" << std::endl;
+        const char *desc;
+        glfwGetError(&desc);
+        std::cout << "failed to initialize GLAD: " << desc << std::endl;
         return nullptr;
     }
 
-    glViewport(0, 0, 800, 800);
+    int w, h;
+    glfwGetFramebufferSize(window, &w, &h);
+    glViewport(0, 0, w, h);
     glfwSetFramebufferSizeCallback(window, [](auto win, auto w, auto h) {
         std::cout << w << ' ' << h << std::endl;
         glViewport(0, 0, w, h);
     });
 
     glfwSetWindowFocusCallback(window, onFocusChange);
-
-    glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
     glfwSetCursorPosCallback(window, onMouseMove);
-//    glfwSetMouseButtonCallback(window, )
+    glfwSetKeyCallback(window, onKey);
     return window;
 }
 
